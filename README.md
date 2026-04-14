@@ -1,299 +1,259 @@
 # TalentMatch – Job-Candidate Matching Engine
 
-A production-grade, hybrid matching system that ranks candidates for job descriptions using keyword overlap, semantic embeddings, and rule-based scoring — with clear, human-readable explanations for every decision.
+A system that ranks candidates for job descriptions using a mix of keyword matching, semantic similarity, and rule-based scoring — with explainable results for each candidate.
 
 ---
 
-## Quick Start (Single Docker Command)
+## 🎬 Don't wanna read boring docs? 😏
+
+**[Click here to watch the live demo walkthrough](https://your-loom-link-here)**
+
+---
+
+## 🌐 Live Demo
+
+| | URL |
+|---|---|
+| Frontend | https://talentmatch-portal-1.onrender.com |
+| Backend (Swagger) | https://talentmatch-portal.onrender.com/docs |
+
+---
+
+## 🧰 Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | FastAPI (Python) |
+| Frontend | React (Vite) |
+| Vector Search | FAISS |
+| Embeddings | `all-MiniLM-L6-v2` (sentence-transformers, local) / `BAAI/bge-small-en-v1.5` (FastEmbed ONNX, Render) |
+| Deployment | Docker + Render |
+
+---
+
+## 🗂️ Sample Data
+
+Don't have test files? Use these to try it out instantly:
+
+| File | Description | Download |
+|---|---|---|
+| `job_description.pdf` | Sample job description | [Download](https://drive.google.com/file/d/1gO7BqC9Tu5D_peL9h_c-nhXdOsIyTvd1/view?usp=sharing) |
+| `candidates.csv` | Sample candidates list | [Download](https://drive.google.com/file/d/13Rjw0EwZyf55cHap0k1ZFYWsTNxAnb3Q/view?usp=sharing) |
+
+Upload these directly on the frontend to see matching in action.
+
+---
+
+## ⚡ Quick Start (Docker)
 
 ```bash
-git clone <repo-url> && cd job-match-engine
-docker-compose up --build
+git clone <your-repo-url>
+cd job-match-engine
+docker compose up --build
 ```
 
-| Service  | URL                        |
-|----------|----------------------------|
-| Frontend | http://localhost:3000       |
-| API docs | http://localhost:8000/docs  |
-| API root | http://localhost:8000       |
-
-Sample data is loaded automatically on startup. No manual seeding required.
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:3000 |
+| Backend | http://localhost:8000/docs |
 
 ---
 
-## Matching Approach
+## 🔁 Using Sentence Transformers Locally (Optional)
 
-### Why Hybrid?
+If you want higher-quality embeddings locally, make these changes **before** running `docker compose up --build`:
 
-No single signal is enough:
-- **Keywords alone** miss semantically related skills (Django ≈ Express.js as backend frameworks).
-- **Embeddings alone** can hallucinate similarity between unrelated domains.
-- **Rules alone** ignore actual skill content.
+**1. `requirements.txt`**
+```
+# uncomment this
+sentence-transformers==3.0.0
 
-The three signals are combined with configurable weights per hiring context.
+# comment this
+# fastembed
+```
 
-### Signal 1 — Keyword Overlap (default 45–60%)
+**2. `Dockerfile`**
+```dockerfile
+# comment this
+# RUN python -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5')"
 
-Exact case-insensitive skill intersection between job requirements and candidate skills. Required skills are weighted **2×** over preferred skills. This is the most reliable signal for hard requirements.
+# enable this
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+```
 
-### Signal 2 — Semantic Matching (default 25–50%)
+**3. Set env var**
+```
+USE_FASTEMBED=false
+```
 
-Uses `all-MiniLM-L6-v2` (22M params, 384-dim) from sentence-transformers to encode the full job text and candidate profile into embeddings. Cosine similarity via FAISS gives a continuous score that captures:
-- Skill synonyms ("Postgres" ↔ "PostgreSQL")
-- Related frameworks ("Django" ↔ "Express.js" as backend frameworks)
-- Domain overlap ("Machine Learning" ↔ "TensorFlow")
-
-### Signal 3 — Rule-Based Score (default 15–20%)
-
-Structured business logic:
-- Experience within the required window → full score
-- Underqualified → linear penalty (recoverable gap < 2 years)
-- Overqualified by >3 years → soft 0.60 cap with retention warning
-- Profile completeness modifier (sparse profiles get a ×0.9 confidence nudge-down)
-
-### Weight Profiles by Hiring Mode
-
-| Mode      | Keyword | Semantic | Rules | When to use                          |
-|-----------|---------|----------|-------|--------------------------------------|
-| `product` | 60%     | 25%      | 15%   | Hard skill requirements, SaaS/Fintech |
-| `ai`      | 30%     | 50%      | 20%   | Research roles, flexible/emergent tech|
-| `fresher` | 40%     | 40%      | 20%   | Campus hiring, learning potential     |
-| `default` | 45%     | 35%      | 20%   | General hiring                        |
-
-Set `hiring_mode` on each job description. Weights are in `backend/app/core/matcher.py` (`WEIGHT_PROFILES`) and can be changed without touching any other code.
+Then rebuild:
+```bash
+docker compose up --build
+```
 
 ---
 
-## API Reference
+## 🧠 How Matching Works
 
-### Ingest
+The system combines 3 signals instead of relying on a single method:
 
+### 1. Keyword Matching
+- Exact overlap between job skills and candidate skills
+- Required skills are weighted higher than preferred skills
+
+### 2. Semantic Matching
+- Text is converted to embeddings via FastEmbed
+- Finds similarity even when wording differs
+- e.g. `"Postgres"` ≈ `"PostgreSQL"`
+
+### 3. Rule-Based Scoring
+- Experience range check
+- Profile completeness score
+- Handles over/under qualification
+
+---
+
+## 🎯 How Candidates Are Evaluated
+
+Three scoring signals combined:
+
+- **Keyword Match** — Exact skill overlap. Required skills count 2× preferred.
+- **Semantic Match** — Skill category overlap e.g. Django similar to Express.js.
+- **Experience Fit** — Years vs role range. Overqualified is flagged.
+
+### Weights by Context
+
+| Context | Keyword | Semantic | Experience | Best For |
+|---|---|---|---|---|
+| Product company | 60% | 25% | 15% | SaaS, fintech |
+| AI startup | 30% | 50% | 20% | Flexible, research |
+| Fresher hiring | 40% | 40% | 20% | Campus, potential |
+| General | 45% | 35% | 20% | Most scenarios |
+
+### Score Bands
+
+| Score | Result |
+|---|---|
+| 65 – 100 | ✅ Strong fit |
+| 40 – 64 | 🟡 Moderate |
+| 0 – 39 | ❌ Weak fit |
+
+---
+
+## 🔧 Key Optimization — Real Issue Faced
+
+### Problem
+Initially used `sentence-transformers` (PyTorch-based):
+- Memory usage: ~300–400MB just for model load
+- Render free tier limit: 512MB
+- Backend kept crashing → 502 errors → fake CORS errors in browser
+
+### Solution
+Switched to `fastembed` (ONNX-based):
+- No PyTorch dependency
+- Total memory ~50–100MB
+- Removed model loading at startup
+- Reduced batch size (64 → 16)
+- Incremental FAISS index updates instead of full rebuild on every upload
+
+### Result
+- Stable deployment on free tier
+- Faster cold starts
+- Same semantic matching quality
+
+---
+
+## 📡 API Endpoints
+
+### Upload
 ```
-POST /candidates          → upload candidate profiles (JSON array)
-POST /candidates/upload   → upload as JSON file
-POST /jobs                → upload job descriptions (JSON array)
-POST /jobs/upload         → upload as JSON file
+POST /jobs/upload
+POST /candidates/upload
 ```
 
 ### Matching
-
 ```
-GET /match/{jd_id}                  → ranked list of all candidates
-GET /match/{jd_id}?top_k=50         → limit to top 50
-GET /match/{jd_id}/{candidate_id}   → detailed match for one pair
+GET /match/{jd_id}
+GET /match/{jd_id}/{candidate_id}
 ```
 
-### Browsing
-
+### Other
 ```
-GET /jobs         → list all jobs
-GET /candidates   → list all candidates
-GET /stats        → system stats (job count, candidate count, embedding status)
-GET /health       → health check
-```
-
-### Example Response: `GET /match/jd001`
-
-```json
-{
-  "job_id": "jd001",
-  "job_title": "Senior Backend Engineer – Python/Django",
-  "hiring_mode": "product",
-  "total_candidates": 8,
-  "results": [
-    {
-      "rank": 1,
-      "candidate_id": "c006",
-      "candidate_name": "Amit Joshi",
-      "score": 0.8892,
-      "fit": "STRONG",
-      "confidence": 1.0,
-      "breakdown": {
-        "keyword_score": 0.9,
-        "semantic_score": 0.82,
-        "rules_score": 0.8,
-        "weights": { "keyword": 0.6, "embedding": 0.25, "rules": 0.15 }
-      },
-      "details": {
-        "matched_skills": ["Python", "Django", "PostgreSQL", "Redis", "Docker"],
-        "missing_skills": [],
-        "semantic_bridges": [
-          { "candidate_skill": "FastAPI", "job_skill": "Django", "category": "Backend Frameworks" }
-        ],
-        "experience_note": "Experience is a strong fit (9 yrs within 4–8 yrs).",
-        "profile_completeness": "100%",
-        "skill_recommendations": []
-      },
-      "explanation": "Amit Joshi is a strong fit for the Senior Backend Engineer – Python/Django role. Matched skills: Python, Django, Postgresql, Rest Apis, Docker, Redis. No critical skill gaps identified. Experience is a strong fit (9 yrs within 4–8 yrs). Score breakdown — Keyword: 90% (×0.6), Semantic: 82% (×0.25), Rules: 80% (×0.15). Final weighted score: 89%."
-    }
-  ]
-}
+GET /jobs
+GET /candidates
+GET /stats
 ```
 
 ---
 
-## Project Structure
+## 🖥️ Frontend Features
+
+- Upload job descriptions and candidate files
+- View ranked candidate results
+- See detailed match explanation per candidate
+- Works entirely without Postman
+
+---
+
+## ⚠️ Edge Cases Handled
+
+- Missing or empty skills
+- Incomplete candidate profiles
+- Overqualified candidates
+- Invalid or unsupported file uploads
+
+---
+
+## 📈 Scalability (100k+ Candidates)
+
+**Current setup:**
+- In-memory store
+- FAISS exact search (IndexFlatIP)
+
+**Limitations at scale:**
+- Slower search without indexing strategy
+- No data persistence across restarts
+
+**Future improvements:**
+- PostgreSQL + pgvector
+- Redis caching layer
+- FAISS IVF / HNSW for approximate search
+- Async background embedding jobs
+
+---
+
+## ⚖️ Tradeoffs
+
+| Decision | Tradeoff |
+|---|---|
+| FastEmbed over PyTorch | Slightly less accurate but fits in 512MB |
+| In-memory store | Fast reads, no persistence |
+| Rule-based scoring | Simple and explainable, but rigid |
+| FAISS flat index | Exact results, slower at 100k+ scale |
+
+---
+
+## 📁 Project Structure
 
 ```
-job-match-engine/
-├── backend/
-│   ├── app/
-│   │   ├── main.py              ← FastAPI app + startup data loading
-│   │   ├── api/
-│   │   │   ├── ingest.py        ← POST /candidates, POST /jobs
-│   │   │   └── match.py         ← GET /match/...
-│   │   ├── core/
-│   │   │   ├── matcher.py       ← Hybrid scoring engine (pure Python)
-│   │   │   ├── embeddings.py    ← Sentence-transformer + FAISS index
-│   │   │   └── store.py         ← In-memory data store
-│   │   └── models/
-│   │       └── schemas.py       ← Pydantic request/response models
-│   ├── requirements.txt
-│   └── Dockerfile
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx
-│   │   ├── components/Sidebar.jsx
-│   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Match.jsx        ← Main matching UI + detail panel
-│   │   │   ├── Upload.jsx
-│   │   │   ├── Jobs.jsx
-│   │   │   └── Candidates.jsx
-│   │   └── utils/api.js
-│   ├── Dockerfile
-│   └── nginx.conf
-├── sample_data/
-│   ├── candidates.json          ← 8 sample candidates
-│   └── jobs.json                ← 4 sample job descriptions
-└── docker-compose.yml
+backend/          → FastAPI app + matching logic
+frontend/         → React UI (Vite)
+sample_data/      → Test CSV and PDF files
+docker-compose.yml
 ```
 
 ---
 
-## Edge Case Handling
-
-| Scenario                  | Handling                                                              |
-|---------------------------|-----------------------------------------------------------------------|
-| Empty skills list         | Keyword score → 0; semantic score → 0.5 (neutral); no crash          |
-| Vague job description     | Keyword/semantic scores lower naturally; system still ranks          |
-| Missing profile fields    | Completeness score reduces confidence; explanation notes sparsity     |
-| Overqualified candidate   | Rule score capped at 0.60 with recruiter warning in explanation       |
-| No candidates in system   | 404 with clear message                                                |
-| Invalid JSON upload       | 400 with parse error detail                                           |
-| Embeddings unavailable    | System falls back to neutral 0.5 semantic score, still functional    |
-
----
-
-## Scalability to 100k Candidates
-
-### Current Architecture (works up to ~5k candidates)
-
-- In-memory Python dict for candidate store
-- FAISS `IndexFlatIP` (exact search, O(n) per query)
-- Single-process FastAPI
-
-### Bottlenecks at Scale
-
-| Bottleneck              | Kicks in at | Impact                                              |
-|-------------------------|-------------|-----------------------------------------------------|
-| Embedding computation   | 10k+        | Encoding 100k profiles ≈ 20–40 min on CPU           |
-| FAISS flat index memory | 100k        | 384-dim × 100k × 4 bytes ≈ 150 MB (manageable)     |
-| In-memory store         | 50k+        | High RAM; no persistence across restarts             |
-| Single-process FastAPI  | High RPS    | No horizontal scaling                                |
-
-### Recommended Architecture at 100k+
-
-```
-                    ┌──────────────┐
-                    │  API Gateway │
-                    │  (nginx/ALB) │
-                    └──────┬───────┘
-                           │
-              ┌────────────┼─────────────┐
-              ▼            ▼             ▼
-        FastAPI #1    FastAPI #2    FastAPI #3    (stateless workers)
-              │            │             │
-              └────────────┼─────────────┘
-                           │
-                    ┌──────▼───────┐
-                    │  PostgreSQL  │  ← candidate / job metadata
-                    └──────┬───────┘
-                           │
-                    ┌──────▼───────┐
-                    │  Redis Cache │  ← embedding cache, result cache
-                    └──────────────┘
-                           │
-                    ┌──────▼───────┐
-                    │  FAISS IVF   │  ← sharded or pgvector
-                    │  (persisted) │
-                    └──────────────┘
-                           │
-                    ┌──────▼───────┐
-                    │ Celery Queue │  ← async batch embedding jobs
-                    └──────────────┘
-```
-
-**Specific changes required:**
-
-1. **Switch FAISS index**: `IndexFlatIP` → `IndexIVFFlat(nlist=1024)` or `IndexHNSWFlat` for sub-linear ANN search. Trade: ~2–5% recall loss for 10–50× speedup.
-
-2. **Precompute embeddings asynchronously**: Use Celery workers to encode profiles in batches of 512 on upload. Store vectors in pgvector or a FAISS shard saved to S3.
-
-3. **Persistent store**: Replace in-memory dict with PostgreSQL for metadata. Candidate IDs map to FAISS row indices in the DB.
-
-4. **Result caching**: Cache `GET /match/{jd_id}` results in Redis with a short TTL (5–10 min). Invalidate on new candidate upload.
-
-5. **Horizontal scaling**: FastAPI is stateless once embeddings are in a shared index. Run 3–5 replicas behind a load balancer.
-
-6. **GPU encoding** (optional): Move embedding computation to a GPU worker (A10G). Encoding 100k profiles drops from 40 min → ~2 min.
-
-### Tradeoffs Accepted in This Implementation
-
-| Decision                      | Tradeoff                                             |
-|-------------------------------|------------------------------------------------------|
-| In-memory store               | Fast dev; no persistence. Replace with Postgres at scale. |
-| `all-MiniLM-L6-v2` (22M)     | Fast CPU inference; `bge-large` gives better recall but 3× slower. |
-| `IndexFlatIP` (exact)         | 100% recall; O(n) query time. Use IVF at 10k+.      |
-| Keyword weight dominant       | Prioritises hard requirements; may penalise career switchers. |
-| Rule-based experience         | Deterministic but rigid; a learned model would be more nuanced. |
-
----
-
-## Design Decisions
-
-**Why not use an LLM for ranking directly?**
-LLMs are slow (~2–5s per candidate pair), expensive at scale, and non-deterministic. They're better used for the explanation step. Our hybrid scoring is fast, deterministic, and explainable — the explanation is generated from structured signals, not from prompting an LLM.
-
-**Why sentence-transformers over OpenAI embeddings?**
-No API cost, no rate limits, runs offline, and `all-MiniLM-L6-v2` is competitive for skill-domain text. At scale, this matters.
-
-**Why not a graph-based skill taxonomy?**
-A skill ontology (O*NET, ESCO) would improve precision for rare skills. It adds significant data maintenance overhead and was out of scope for this implementation — but the `SKILL_CATEGORIES` dict in `matcher.py` is the foundation for adding it.
-
----
-
-## Running Without Docker (Development)
+## 🧪 Run Without Docker
 
 ```bash
 # Backend
 cd backend
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload
 
 # Frontend
 cd frontend
 npm install
-npm run dev     # → http://localhost:5173
+npm run dev
 ```
-
-Set `VITE_API_URL=http://localhost:8000` in `frontend/.env` for local dev.
-
----
-
-## Sample Data
-
-**4 job descriptions** across hiring modes: `product`, `ai`, `fresher`  
-**8 candidate profiles** covering backend, frontend, ML, junior, senior profiles
-
-All in `sample_data/` as JSON. Loaded automatically on startup.
