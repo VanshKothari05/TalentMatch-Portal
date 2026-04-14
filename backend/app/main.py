@@ -149,9 +149,9 @@ def _load_sample_data():
 
             store.add_job(jd)
 
-    # create embeddings
-    if candidate_texts:
-        embedding_service.add_candidates(candidate_texts)
+    # # create embeddings
+    # if candidate_texts:
+    #     embedding_service.add_candidates(candidate_texts)
 
 
 # ---------------- app startup ----------------

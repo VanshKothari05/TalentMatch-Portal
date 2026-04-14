@@ -74,15 +74,16 @@ class EmbeddingService:
             vec /= norm
         return vec
 
-    # add candidates and build embeddings
+# add candidates and build embeddings
     def add_candidates(self, candidate_texts: Dict[str, str]) -> None:
         if not _DEPS_AVAILABLE:
             return
         self._load_model()
         ids = list(candidate_texts.keys())
         texts = list(candidate_texts.values())
-        vecs = self._model.encode(texts, convert_to_numpy=True, batch_size=64).astype("float32")
+        vecs = self._model.encode(texts, convert_to_numpy=True, batch_size=16).astype("float32")
 
+        new_vecs = []
         for cid, vec in zip(ids, vecs):
             norm = np.linalg.norm(vec)
             if norm > 0:
@@ -92,8 +93,14 @@ class EmbeddingService:
                 row = len(self._id_to_row)
                 self._id_to_row[cid] = row
                 self._row_to_id[row] = cid
+                new_vecs.append(vec)
 
-        self._build_index()
+        if new_vecs and _DEPS_AVAILABLE:
+            matrix = np.stack(new_vecs).astype("float32")
+            faiss.normalize_L2(matrix)
+            if self._index is None:
+                self._index = faiss.IndexFlatIP(EMBEDDING_DIM)
+            self._index.add(matrix)
 
     # get similarity of job with all candidates
     def similarities_for_job(
