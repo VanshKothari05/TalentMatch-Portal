@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 
-const API = '/api'
+const API = "https://talentmatch-portal.onrender.com/"
 async function req(path, opts = {}) {
   const res = await fetch(`${API}${path}`, opts)
   if (!res.ok) { const e = await res.json().catch(() => ({ detail: res.statusText })); throw new Error(e.detail || 'Request failed') }
