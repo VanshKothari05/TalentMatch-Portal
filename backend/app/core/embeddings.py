@@ -1,87 +1,81 @@
 """
 Embedding Service
 
-convert text → numbers so we can compare meaning
+LOCAL: uses sentence-transformers + faiss (full quality)
+RENDER: uses fastembed + faiss-cpu (light, no PyTorch)
 
-FAISS:
-used for fast similarity search between vectors
-
-Index used:
-IndexFlatIP → checks all vectors (accurate but slower for large data)
-for bigger scale → use IndexIVFFlat or IndexHNSWFlat
-
-model:
-all-MiniLM-L6-v2 → small, fast, works on CPU
+ we set env var USE_FASTEMBED=true on Render
 """
 
 from __future__ import annotations
 import logging
+import os
 from typing import Dict, List, Optional
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# try importing heavy libs (if missing, system still runs)
+USE_FASTEMBED = os.getenv("USE_FASTEMBED", "false").lower() == "true"
+
 try:
-    from sentence_transformers import SentenceTransformer
-    import faiss
+    if USE_FASTEMBED:
+        from fastembed import TextEmbedding
+        import faiss
+    else:
+        from sentence_transformers import SentenceTransformer
+        import faiss
     _DEPS_AVAILABLE = True
 except ImportError:
     _DEPS_AVAILABLE = False
-    logger.warning("missing sentence-transformers/faiss → semantic score = 0.5")
+    logger.warning("missing deps → semantic score = 0.5")
 
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME_ST = "all-MiniLM-L6-v2"
+MODEL_NAME_FE = "BAAI/bge-small-en-v1.5"
 EMBEDDING_DIM = 384
 
 
 class EmbeddingService:
-    """handles text → vector + similarity search"""
 
     def __init__(self) -> None:
-        self._model: Optional[object] = None
-        self._index: Optional[object] = None
+        self._model = None
+        self._index = None
         self._id_to_row: Dict[str, int] = {}
         self._row_to_id: Dict[int, str] = {}
         self._embeddings: Dict[str, np.ndarray] = {}
 
-    # load model only when needed
     def _load_model(self) -> None:
         if not _DEPS_AVAILABLE:
             return
         if self._model is None:
             logger.info("loading model...")
-            self._model = SentenceTransformer(MODEL_NAME)
+            if USE_FASTEMBED:
+                self._model = TextEmbedding(model_name=MODEL_NAME_FE)
+            else:
+                self._model = SentenceTransformer(MODEL_NAME_ST)
 
-    # build FAISS index from embeddings
-    def _build_index(self) -> None:
-        if not _DEPS_AVAILABLE or not self._embeddings:
-            return
-        rows = sorted(self._id_to_row.items(), key=lambda x: x[1])
-        matrix = np.stack([self._embeddings[cid] for cid, _ in rows]).astype("float32")
-        faiss.normalize_L2(matrix)
-        index = faiss.IndexFlatIP(EMBEDDING_DIM)  # brute force search
-        index.add(matrix)
-        self._index = index
+    def _encode(self, texts: List[str]) -> np.ndarray:
+        if USE_FASTEMBED:
+            return np.array(list(self._model.embed(texts))).astype("float32")
+        else:
+            return self._model.encode(texts, convert_to_numpy=True, batch_size=16).astype("float32")
 
-    # convert text → vector
     def encode_text(self, text: str) -> Optional[np.ndarray]:
         if not _DEPS_AVAILABLE:
             return None
         self._load_model()
-        vec = self._model.encode([text], convert_to_numpy=True)[0].astype("float32")
+        vec = self._encode([text])[0]
         norm = np.linalg.norm(vec)
         if norm > 0:
             vec /= norm
         return vec
 
-# add candidates and build embeddings
     def add_candidates(self, candidate_texts: Dict[str, str]) -> None:
         if not _DEPS_AVAILABLE:
             return
         self._load_model()
         ids = list(candidate_texts.keys())
         texts = list(candidate_texts.values())
-        vecs = self._model.encode(texts, convert_to_numpy=True, batch_size=16).astype("float32")
+        vecs = self._encode(texts)
 
         new_vecs = []
         for cid, vec in zip(ids, vecs):
@@ -95,21 +89,19 @@ class EmbeddingService:
                 self._row_to_id[row] = cid
                 new_vecs.append(vec)
 
-        if new_vecs and _DEPS_AVAILABLE:
+        if new_vecs:
             matrix = np.stack(new_vecs).astype("float32")
             faiss.normalize_L2(matrix)
             if self._index is None:
                 self._index = faiss.IndexFlatIP(EMBEDDING_DIM)
             self._index.add(matrix)
 
-    # get similarity of job with all candidates
     def similarities_for_job(
         self, job_text: str, candidate_ids: Optional[List[str]] = None
     ) -> Dict[str, float]:
-
         if not _DEPS_AVAILABLE or self._index is None:
-            target_ids = candidate_ids or list(self._embeddings.keys())
-            return {cid: 0.5 for cid in target_ids}
+            target = candidate_ids or list(self._embeddings.keys())
+            return {cid: 0.5 for cid in target}
 
         job_vec = self.encode_text(job_text)
         if job_vec is None:
@@ -137,12 +129,11 @@ class EmbeddingService:
                     result[cid] = 0.5
             return result
 
-    # similarity between two texts
     def similarity_pair(self, text_a: str, text_b: str) -> float:
         if not _DEPS_AVAILABLE:
             return 0.5
         self._load_model()
-        vecs = self._model.encode([text_a, text_b], convert_to_numpy=True).astype("float32")
+        vecs = self._encode([text_a, text_b])
         a, b = vecs[0], vecs[1]
         norm_a, norm_b = np.linalg.norm(a), np.linalg.norm(b)
         if norm_a == 0 or norm_b == 0:
