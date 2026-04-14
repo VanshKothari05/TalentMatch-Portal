@@ -6,7 +6,7 @@ A system that ranks candidates for job descriptions using a mix of keyword match
 
 ## 🎬 Don't wanna read boring docs? 😏
 
-**[Click here to watch the live demo walkthrough](https://your-loom-link-here)**
+**[Click here to watch the live demo walkthrough video](https://vimeo.com/1182972430?share=copy&fl=sv&fe=ci)**
 
 ---
 
