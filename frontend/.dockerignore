@@ -1,0 +1,19 @@
+# Never send node_modules - it's huge and Docker installs its own
+node_modules/
+npm-debug.log*
+
+# Build output - Docker builds this fresh
+dist/
+build/
+
+# Dev files
+.env
+.env.*
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# Git
+.git/
+.gitignore

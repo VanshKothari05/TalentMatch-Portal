@@ -1,0 +1,30 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', -apple-system, sans-serif; background: #f7f5f0; color: #1a1a1a; }
+@keyframes spin { to { transform: rotate(360deg); } }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #d0ccc5; border-radius: 2px; }
+body {
+  margin: 0;
+}
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.shimmer {
+  background: linear-gradient(90deg, #eeebe6 25%, #e4e0da 50%, #eeebe6 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.5s infinite linear;
+  border-radius: 5px;
+}
+.fade-slide { animation: fadeSlide 0.25s ease forwards; }
+.row-hover:hover { background: #faf8f5 !important; }

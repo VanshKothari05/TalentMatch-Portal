@@ -1,0 +1,31 @@
+# Python cache - these change constantly and bust the pip layer cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environments - never copy these into Docker
+venv/
+env/
+.venv/
+ENV/
+
+# Dev/editor files
+.env
+.env.*
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Git
+.git/
+.gitignore

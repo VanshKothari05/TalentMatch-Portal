@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: talentmatch-backend:latest
+    container_name: talentmatch-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./sample_data:/app/sample_data:ro
+      - ./backend/app:/app/app:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: talentmatch-frontend:latest
+    container_name: talentmatch-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
