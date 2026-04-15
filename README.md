@@ -29,20 +29,6 @@ A system that ranks candidates for job descriptions using a mix of keyword match
 | Embeddings | `all-MiniLM-L6-v2` (sentence-transformers, local) / `BAAI/bge-small-en-v1.5` (FastEmbed ONNX, Render) |
 | Deployment | Docker + Render |
 
----
-
-##  Sample Data
-
-Don't have test files? Use these to try it out instantly:
-
-| File | Description | Download |
-|---|---|---|
-| `job_description.pdf` | Sample job description | [Download](https://drive.google.com/file/d/1gO7BqC9Tu5D_peL9h_c-nhXdOsIyTvd1/view?usp=sharing) |
-| `candidates.csv` | Sample candidates list | [Download](https://drive.google.com/file/d/13Rjw0EwZyf55cHap0k1ZFYWsTNxAnb3Q/view?usp=sharing) |
-
-Upload these directly on the frontend to see matching in action.
-
----
 
 ##  Quick Start (Docker)
 
