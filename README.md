@@ -4,13 +4,13 @@ A system that ranks candidates for job descriptions using a mix of keyword match
 
 ---
 
-## 🎬 Don't wanna read boring docs? 😏
+##  Don't wanna read boring docs? 
 
 **[Click here to watch the live demo walkthrough video](https://www.loom.com/share/61b07555ce5c4bce94d76cd5a7714f60)**
 
 ---
 
-## 🌐 Live Demo
+##  Live Demo
 
 | | URL |
 |---|---|
@@ -19,7 +19,7 @@ A system that ranks candidates for job descriptions using a mix of keyword match
 
 ---
 
-## 🧰 Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -31,7 +31,7 @@ A system that ranks candidates for job descriptions using a mix of keyword match
 
 ---
 
-## 🗂️ Sample Data
+##  Sample Data
 
 Don't have test files? Use these to try it out instantly:
 
@@ -44,7 +44,7 @@ Upload these directly on the frontend to see matching in action.
 
 ---
 
-## ⚡ Quick Start (Docker)
+##  Quick Start (Docker)
 
 ```bash
 git clone <your-repo-url>
@@ -59,7 +59,7 @@ docker compose up --build
 
 ---
 
-## 🔁 Using Sentence Transformers Locally (Optional)
+##  Using Sentence Transformers Locally (Optional)
 
 If you want higher-quality embeddings locally, make these changes **before** running `docker compose up --build`:
 
@@ -93,7 +93,7 @@ docker compose up --build
 
 ---
 
-## 🧠 How Matching Works
+##  How Matching Works
 
 The system combines 3 signals instead of relying on a single method:
 
@@ -113,7 +113,7 @@ The system combines 3 signals instead of relying on a single method:
 
 ---
 
-## 🎯 How Candidates Are Evaluated
+##  How Candidates Are Evaluated
 
 Three scoring signals combined:
 
@@ -134,13 +134,13 @@ Three scoring signals combined:
 
 | Score | Result |
 |---|---|
-| 65 – 100 | ✅ Strong fit |
-| 40 – 64 | 🟡 Moderate |
-| 0 – 39 | ❌ Weak fit |
+| 65 – 100 |  Strong fit |
+| 40 – 64 |  Moderate |
+| 0 – 39 |  Weak fit |
 
 ---
 
-## 🔧 Key Optimization — Real Issue Faced
+##  Key Optimization — Real Issue Faced
 
 ### Problem
 Initially used `sentence-transformers` (PyTorch-based):
@@ -163,7 +163,7 @@ Switched to `fastembed` (ONNX-based):
 
 ---
 
-## 📡 API Endpoints
+##  API Endpoints
 
 ### Upload
 ```
@@ -186,7 +186,7 @@ GET /stats
 
 ---
 
-## 🖥️ Frontend Features
+##  Frontend Features
 
 - Upload job descriptions and candidate files
 - View ranked candidate results
@@ -195,7 +195,7 @@ GET /stats
 
 ---
 
-## ⚠️ Edge Cases Handled
+##  Edge Cases Handled
 
 - Missing or empty skills
 - Incomplete candidate profiles
@@ -204,7 +204,7 @@ GET /stats
 
 ---
 
-## 📈 Scalability (100k+ Candidates)
+##  Scalability (100k+ Candidates)
 
 **Current setup:**
 - In-memory store
@@ -222,7 +222,7 @@ GET /stats
 
 ---
 
-## ⚖️ Tradeoffs
+##  Tradeoffs
 
 | Decision | Tradeoff |
 |---|---|
@@ -233,7 +233,7 @@ GET /stats
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 backend/          → FastAPI app + matching logic
@@ -244,7 +244,7 @@ docker-compose.yml
 
 ---
 
-## 🧪 Run Without Docker
+##  Run Without Docker
 
 ```bash
 # Backend
